@@ -19,22 +19,16 @@ def find_duplicate_letter(glyph: SymbolGlyph, letters_db: dict):
             return letter_id
     return None
 
-def find_duplicate_word(word: SymbolChain, words_db: dict):
+def find_duplicate_word(current_letters: List[str], words_db: dict):
     """
-    Check if a word with the same component configuration already exists.
+    Check if a word with the same letter IDs already exists.
     Returns the word ID if found, None otherwise.
     """
-    glyphs: List[SymbolGlyph] = word.glyphs
-    current_components = [
-        get_active_components_set(glyph) for glyph in glyphs
-    ] # order matters
-
+    current_letters = sorted(current_letters)
+    
     for word_id, word_data in words_db.items():
-        # Convert stored components to a set
-        stored_components = [
-            frozenset(glyph_data) for glyph_data in word_data["components"]
-        ]
-        if current_components == stored_components:
+        # Sort stored letter IDs to ensure consistent comparison
+        stored_letters = sorted(word_data["letter_ids"])
+        if current_letters == stored_letters:
             return word_id
-        
     return None

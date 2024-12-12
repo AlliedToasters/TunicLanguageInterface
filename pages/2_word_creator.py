@@ -8,12 +8,13 @@ from pathlib import Path
 
 from components.word_gallery import render_word_gallery, save_word, load_words, render_word_preview
 from components.letter_gallery import load_letters, render_letter_gallery
+from components.identity import find_duplicate_word
 
 def word_creator():
     st.title("Word Creator")
     
     # Create tabs for create and galleries
-    tab1, tab2, tab3 = st.tabs(["Create Word", "Letter Gallery", "Word Gallery"])
+    tab1, tab3 = st.tabs(["Create Word", "Word Gallery"])
     
     # Load available letters
     letters_db = load_letters()
@@ -31,34 +32,6 @@ def word_creator():
         
         with col1:
             st.subheader("Compose Word")
-
-
-            
-            # # Letter selector
-            # selected_letter = st.selectbox(
-            #     "Add Letter",
-            #     options=list(letters_db.keys()),
-            #     format_func=lambda x: f"Letter {x}"
-            # )
-            
-            # if st.button("Add Letter"):
-            #     if selected_letter:
-            #         st.session_state.current_word_letters.append(selected_letter)
-            #         st.rerun()
-                # Letter selector
-            # num_columns = 5
-            # columns = st.columns(num_columns)
-
-            # for i, letter in enumerate(letters_db.keys()):
-            #     with columns[i % num_columns]:
-            #         if st.button(f"Letter {letter}"):
-            #             st.session_state.current_word_letters.append(letter)
-            #             st.rerun()
-
-            # # if st.button("Add Letter") and clicked_letter:
-            # if render_letter_gallery(letters_db, columns=5, incl_text=False):
-            #     st.session_state.current_word_letters.append(clicked_letter)
-            #     st.rerun()
             
             if st.button("Remove Last Letter") and st.session_state.current_word_letters:
                 st.session_state.current_word_letters.pop()
@@ -95,6 +68,11 @@ def word_creator():
                               help="Any observations or context about this word")
             location = st.text_input("Location Found",
                                  help="Where in the game this word appears")
+            
+            # Check for duplicates before showing save controls
+            duplicate_id = find_duplicate_word(st.session_state.current_word_letters, words_db) 
+            if duplicate_id:
+                st.warning(f"⚠️ This word configuration already exists with ID: '{duplicate_id}'")
             
             if st.button("Save Word", disabled=not (word_id and st.session_state.current_word_letters)):
                 # Prepare word data with letter references

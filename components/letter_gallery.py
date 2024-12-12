@@ -118,7 +118,6 @@ from st_clickable_images import clickable_images
 
 def render_letter_gallery(letters_db: Dict, columns: int = 5, incl_text: bool = True, callback=None):
     """Render a grid of clickable letter previews with their IDs"""
-    st.subheader("Letter Gallery")
     
     if not letters_db:
         st.write("No letters saved yet!")
