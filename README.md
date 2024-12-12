@@ -3,6 +3,19 @@ This project evolved out of a personal project to decode the in-game "language" 
 
 Since this is an aimless personal project, I got sidetracked by the idea of automating the drawing and matching of symbols to the in-game language. This project is the result of that.
 
+## Setting Up the Environment
+Because it is *always* a good idea to create and use a virtual environment, I will only provide instructions for setting up the environment using venv. If you are using a different virtual environment manager, you can adapt the instructions as needed.
+```bash
+# install venv if needed onto your system python
+python -m pip install venv
+# create a dedicated virtual environment for this project
+python -m venv ~/.venvs/tunic
+# activate the virtual environment
+source ~/.venvs/tunic/bin/activate
+# install the required packages
+pip install -r requirements.txt
+```
+
 ## Running the Application
 As a streamlit application, you can run the application by running the following command:
 ```bash
