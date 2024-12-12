@@ -98,15 +98,15 @@ def word_creator():
                 letter_data = letters_db[selected_letter]
                 glyph = create_glyph_from_components(letter_data["components"])
                 st.session_state.current_word_glyphs.append(glyph)
-                st.experimental_rerun()
+                st.rerun()
             
             if st.button("Remove Last Letter") and st.session_state.current_word_glyphs:
                 st.session_state.current_word_glyphs.pop()
-                st.experimental_rerun()
+                st.rerun()
             
             if st.button("Clear Word"):
                 st.session_state.current_word_glyphs = []
-                st.experimental_rerun()
+                st.rerun()
             
             # Display current word composition
             st.write("Current Word Composition:")
@@ -137,25 +137,24 @@ def word_creator():
                             help="Any observations or context about this word")
             location = st.text_input("Location Found",
                                 help="Where in the game this word appears")
-            
-            if not word_id:
-                if st.button("Save Word", disabled=not (word_id and st.session_state.current_word_glyphs)):
-                    # Prepare word data
-                    word_data = {
-                        "id": word_id,
-                        "components": [
-                            [comp for comp in glyph.active_components if glyph.active_components[comp]]
-                            for glyph in st.session_state.current_word_glyphs
-                        ],
-                        "translation": translation,
-                        "notes": notes,
-                        "location_found": location,
-                        "date_added": datetime.now().isoformat()
-                    }
-                    
-                    # Save to database
-                    save_word(word_data)
-                    st.success(f"Word '{word_id}' saved successfully!")
+        
+            if st.button("Save Word", disabled=not (word_id and st.session_state.current_word_glyphs)):
+                # Prepare word data
+                word_data = {
+                    "id": word_id,
+                    "components": [
+                        [comp for comp in glyph.active_components if glyph.active_components[comp]]
+                        for glyph in st.session_state.current_word_glyphs
+                    ],
+                    "translation": translation,
+                    "notes": notes,
+                    "location_found": location,
+                    "date_added": datetime.now().isoformat()
+                }
+                
+                # Save to database
+                save_word(word_data)
+                st.success(f"Word '{word_id}' saved successfully!")
 
     with tab2:
         letters_db = load_letters()
