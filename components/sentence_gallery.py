@@ -7,6 +7,7 @@ import json
 from typing import Dict, List, Tuple
 
 from components.word_gallery import create_glyph_from_letter_id
+from components.letter_gallery import load_letters
 
 def load_sentences():
     """Load all saved sentences from the database"""
@@ -39,20 +40,26 @@ def save_sentence(sentence_data: dict):
     with open(db_path, "w") as f:
         json.dump(db, f, indent=2)
 
-def render_sentence_component(component: dict, words_db: Dict) -> Tuple[plt.Figure, str]:
+def render_sentence_component(component: dict, words_db: Dict, letters_db: Dict) -> Tuple[plt.Figure, str]:
     """Render a single sentence component (word, text, or punctuation)"""
     if component["type"] == "word":
         word_data = words_db[component["content"]]
-        # Create glyphs from components
-        glyphs = [create_glyph_from_letter_id(letter_id, words_db)
-                 for letter_id in word_data["letter_ids"]]
+        # Create glyphs from letter IDs
+        glyphs = []
+        for letter_id in word_data["letter_ids"]:
+            glyph = create_glyph_from_letter_id(letter_id, letters_db)
+            if glyph:
+                glyphs.append(glyph)
         
-        # Create figure for this word
-        fig, ax = plt.subplots(figsize=(len(glyphs) * 1.5, 3))
-        word_chain = SymbolChain(glyphs)
-        word_chain.render(ax)
-        plt.close()
-        return fig, word_data.get("translation", component["content"])
+        if glyphs:
+            # Create figure for this word
+            fig, ax = plt.subplots(figsize=(len(glyphs) * 1.5, 3))
+            word_chain = SymbolChain(glyphs)
+            word_chain.render(ax)
+            plt.close()
+            return fig, word_data.get("translation", component["content"])
+        else:
+            return None, word_data.get("translation", component["content"])
     else:
         return component["content"], component["content"]
 
@@ -63,6 +70,9 @@ def render_sentence_gallery(sentences_db: Dict, words_db: Dict):
     if not sentences_db:
         st.write("No sentences saved yet!")
         return
+    
+    # Load letters database for rendering
+    letters_db = load_letters()
     
     # Add search/filter options
     search_term = st.text_input("Search sentences (ID, translation, or location)", "")
@@ -96,12 +106,14 @@ def render_sentence_gallery(sentences_db: Dict, words_db: Dict):
                 # Render each component
                 for idx, component in enumerate(sentence_data["components"]):
                     with cols[idx]:
-                        rendered, _ = render_sentence_component(component, words_db)
+                        rendered, translation = render_sentence_component(component, words_db, letters_db)
                         if isinstance(rendered, plt.Figure):
                             st.pyplot(rendered)
-                        else:
+                        elif rendered is not None:
                             st.markdown(f"<h2 style='text-align: center;'>{rendered}</h2>", 
                                       unsafe_allow_html=True)
+                        else:
+                            st.warning("Failed to render component")
             
             # Display translation
             st.write("Translation:")
@@ -110,7 +122,7 @@ def render_sentence_gallery(sentences_db: Dict, words_db: Dict):
             else:
                 # Build translation from components
                 translation = " ".join(
-                    render_sentence_component(comp, words_db)[1]
+                    render_sentence_component(comp, words_db, letters_db)[1]
                     for comp in sentence_data["components"]
                 )
                 st.write(translation)
@@ -124,26 +136,13 @@ def render_sentence_gallery(sentences_db: Dict, words_db: Dict):
             if sentence_data.get("date_added"):
                 st.caption(f"Added: {sentence_data['date_added']}")
 
-def render_sentence_preview(sentence_components, words_db):
+def render_sentence_preview(sentence_components: List[dict], words_db: Dict) -> List[Tuple[plt.Figure, str]]:
     """Render the visual preview of the sentence"""
-    # Create separate figures for each symbol word
+    letters_db = load_letters()
     word_figures = []
     
     for item in sentence_components:
-        if item["type"] == "word":
-            word_data = words_db[item["content"]]
-            # Create glyphs from components
-            glyphs = [create_glyph_from_components(letter_components) 
-                     for letter_components in word_data["components"]]
-            
-            # Create figure for this word
-            fig, ax = plt.subplots(figsize=(len(glyphs) * 1.5, 3))
-            word_chain = SymbolChain(glyphs)
-            word_chain.render(ax)
-            plt.close()
-            word_figures.append((fig, item["type"]))
-        else:
-            # For non-symbol components, we'll just pass them through
-            word_figures.append((item["content"], item["type"]))
+        rendered, _ = render_sentence_component(item, words_db, letters_db)
+        word_figures.append((rendered, item["type"]))
     
     return word_figures
