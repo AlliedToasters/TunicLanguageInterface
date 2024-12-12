@@ -27,24 +27,38 @@ def word_creator():
         col1, col2 = st.columns([2, 3])
 
         # tiny letter gallery for reference
-        render_letter_gallery(letters_db, columns=16, incl_text=False)
+        # render_letter_gallery(letters_db, columns=16, incl_text=False)
         
         with col1:
             st.subheader("Compose Word")
 
 
             
-            # Letter selector
-            selected_letter = st.selectbox(
-                "Add Letter",
-                options=list(letters_db.keys()),
-                format_func=lambda x: f"Letter {x}"
-            )
+            # # Letter selector
+            # selected_letter = st.selectbox(
+            #     "Add Letter",
+            #     options=list(letters_db.keys()),
+            #     format_func=lambda x: f"Letter {x}"
+            # )
             
-            if st.button("Add Letter"):
-                if selected_letter:
-                    st.session_state.current_word_letters.append(selected_letter)
-                    st.rerun()
+            # if st.button("Add Letter"):
+            #     if selected_letter:
+            #         st.session_state.current_word_letters.append(selected_letter)
+            #         st.rerun()
+                # Letter selector
+            # num_columns = 5
+            # columns = st.columns(num_columns)
+
+            # for i, letter in enumerate(letters_db.keys()):
+            #     with columns[i % num_columns]:
+            #         if st.button(f"Letter {letter}"):
+            #             st.session_state.current_word_letters.append(letter)
+            #             st.rerun()
+
+            # # if st.button("Add Letter") and clicked_letter:
+            # if render_letter_gallery(letters_db, columns=5, incl_text=False):
+            #     st.session_state.current_word_letters.append(clicked_letter)
+            #     st.rerun()
             
             if st.button("Remove Last Letter") and st.session_state.current_word_letters:
                 st.session_state.current_word_letters.pop()
@@ -53,6 +67,10 @@ def word_creator():
             if st.button("Clear Word"):
                 st.session_state.current_word_letters = []
                 st.rerun()
+
+            render_letter_gallery(letters_db, columns=5, incl_text=False, callback=lambda letter_id: st.session_state.current_word_letters.append(letter_id))
+            
+
             
             # Display current word composition
             st.write("Current Word Composition:")
@@ -93,9 +111,6 @@ def word_creator():
                 save_word(word_data)
                 st.success(f"Word '{word_id}' saved successfully!")
 
-    with tab2:
-        render_letter_gallery(letters_db)
-        
     with tab3:
         render_word_gallery(words_db)
 
