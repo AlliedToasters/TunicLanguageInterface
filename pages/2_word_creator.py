@@ -6,9 +6,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from components.letter_gallery import render_letter_gallery, load_letters, create_letter_preview
-from components.word_gallery import render_word_gallery, load_words, create_word_preview
-from components.identity import get_active_components_set, find_duplicate_word
+from components.letter_gallery import render_letter_gallery, load_letters
+from components.word_gallery import render_word_gallery, load_words
+from components.identity import find_duplicate_word
 
 def load_letters():
     """Load all saved letters from the database"""
