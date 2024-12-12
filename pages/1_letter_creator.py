@@ -139,7 +139,7 @@ def main():
 
     with tab2:
         letters_db = load_letters()
-        render_letter_gallery(letters_db, columns=3)  # Larger previews in gallery tab
+        render_letter_gallery(letters_db)  # Larger previews in gallery tab
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def create_letter_preview(components: list) -> Optional[plt.Figure]:
     plt.close()
     return fig
 
-def render_letter_gallery(letters_db: Dict, columns: int = 4):
+def render_letter_gallery(letters_db: Dict, columns: int = 5, incl_text: bool = True):
     """Render a grid of letter previews with their IDs"""
     st.subheader("Letter Gallery")
     
@@ -63,11 +63,14 @@ def render_letter_gallery(letters_db: Dict, columns: int = 4):
     # Distribute letters across columns
     for idx, (letter_id, letter_data) in enumerate(letters_db.items()):
         with cols[idx % columns]:
-            st.write(f"ID: {letter_id}")
+            if not incl_text:
+                st.write(letter_id)
+            else:
+                st.write(f"ID: {letter_id}")
             fig = create_letter_preview(letter_data["components"])
             st.pyplot(fig)
-            if letter_data.get("location_found"):
-                st.caption(f"Found: {letter_data['location_found']}")
+            if letter_data.get("location_found") and incl_text:
+                st.write(f"Location: {letter_data['location_found']}")
 
 def render_letter_preview(glyph: SymbolGlyph):
     """Render the glyph and return the figure"""

@@ -25,9 +25,14 @@ def word_creator():
             st.session_state.current_word_letters = []  # List of letter IDs
     
         col1, col2 = st.columns([2, 3])
+
+        # tiny letter gallery for reference
+        render_letter_gallery(letters_db, columns=16, incl_text=False)
         
         with col1:
             st.subheader("Compose Word")
+
+
             
             # Letter selector
             selected_letter = st.selectbox(

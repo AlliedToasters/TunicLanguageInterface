@@ -21,6 +21,7 @@ class SymbolConfig:
     GLYPH_WIDTH = 1.0  # width of a single glyph
     GLYPH_SPACING = 0.0  # spacing between glyphs (0 for shared verticals)
     BRIDGE_LENGTH = 0.1  # length of the tiny bridge lines
+    LINEWIDTH = 3.0  # line width for all components
 
 class GlyphComponents:
     """Enumeration of possible glyph components"""
@@ -90,14 +91,14 @@ class SymbolGlyph:
         ax.plot([self.config.CENTER_X, self.config.CENTER_X],
                 [self.config.FRACTION_Y, 
                 self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
-                'k-', linewidth=1.5)
+                'k-', linewidth=self.config.LINEWIDTH)
         return ax
     
     def draw_left_bridge_line(self, ax: plt.Axes) -> plt.Axes:
         ax.plot([self.config.LEFT_X, self.config.LEFT_X],
                 [self.config.FRACTION_Y, 
                 self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
-                'k-', linewidth=1.5)
+                'k-', linewidth=self.config.LINEWIDTH)
         return ax
     
     def render(self, ax: Optional[plt.Axes] = None) -> plt.Axes:
@@ -112,7 +113,7 @@ class SymbolGlyph:
         ax.axis('off')
         
         # Draw fraction line
-        ax.axhline(y=self.config.FRACTION_Y, color='black', linewidth=1.5)
+        ax.axhline(y=self.config.FRACTION_Y, color='black', linewidth=self.config.LINEWIDTH)
         
         # Draw upper components with gap
         if self.active_components[GlyphComponents.UPPER_LEFT_VERTICAL]:
@@ -120,7 +121,7 @@ class SymbolGlyph:
             ax.plot([self.config.LEFT_X, self.config.LEFT_X],
                    [self.config.FRACTION_Y + self.config.UPPER_GAP, 
                     self.config.HALF_EXTENSION_UP],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             # Draw left bridge line
             ax = self.draw_left_bridge_line(ax)
             
@@ -129,7 +130,7 @@ class SymbolGlyph:
             ax.plot([self.config.CENTER_X, self.config.CENTER_X],
                    [self.config.FRACTION_Y + self.config.UPPER_GAP, 
                     self.config.VERTICAL_EXTENSION_UP],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             # Draw the center bridge line
             ax = self.draw_center_bridge_line(ax)
         
@@ -138,20 +139,21 @@ class SymbolGlyph:
             ax.plot([self.config.LEFT_X, self.config.LEFT_X],
                    [self.config.FRACTION_Y - self.config.LOWER_GAP, 
                     self.config.HALF_EXTENSION_DOWN],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             
         if self.active_components[GlyphComponents.LOWER_CENTER_VERTICAL]:
             ax.plot([self.config.CENTER_X, self.config.CENTER_X],
                    [self.config.FRACTION_Y - self.config.LOWER_GAP, 
                     self.config.VERTICAL_EXTENSION_DOWN],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             
         # Draw circle if present
         if self.active_components[GlyphComponents.LOWER_CIRCLE]:
             circle = plt.Circle((self.config.CENTER_X, 
                                self.config.VERTICAL_EXTENSION_DOWN + self.config.CIRCLE_OFFSET),
                               self.config.CIRCLE_RADIUS,
-                              fill=False, color='black')
+                              fill=False, color='black',
+                                lw=self.config.LINEWIDTH)
             ax.add_artist(circle)
         
         # Draw diamond edges with gaps and bridges
@@ -183,46 +185,46 @@ class SymbolGlyph:
         if position == "upper":
             # Handle upper diamond edges
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=self.config.LINEWIDTH)
                 # Add center bridge line
-                ax = self.draw_center_bridge_line(ax)
+                # ax = self.draw_center_bridge_line(ax)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=1.5)
-                # Add center bridge line
-                ax = self.draw_center_bridge_line(ax)
+                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
+                if self.active_components[getattr(components, "LOWER_CENTER_VERTICAL")]:
+                    ax = self.draw_center_bridge_line(ax)
         else:
             # Handle lower diamond edges (unchanged)
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
 
     def draw_center_bridge_line_at_position(self, ax: plt.Axes, x_offset: float) -> plt.Axes:
         ax.plot([x_offset + self.config.CENTER_X, x_offset + self.config.CENTER_X],
                 [self.config.FRACTION_Y, 
                 self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
-                'k-', linewidth=1.5)
+                'k-', linewidth=self.config.LINEWIDTH)
         return ax
     
     def draw_left_bridge_line_at_position(self, ax: plt.Axes, x_offset: float) -> plt.Axes:
         ax.plot([x_offset + self.config.LEFT_X, x_offset + self.config.LEFT_X],
                 [self.config.FRACTION_Y, 
                 self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
-                'k-', linewidth=1.5)
+                'k-', linewidth=self.config.LINEWIDTH)
         return ax
 
 
@@ -237,7 +239,7 @@ class SymbolGlyph:
             ax.plot([x_offset + config.LEFT_X, x_offset + config.LEFT_X],
                    [config.FRACTION_Y + config.UPPER_GAP, 
                     config.HALF_EXTENSION_UP],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             # Draw left bridge line
             ax = self.draw_left_bridge_line_at_position(ax, x_offset)
             
@@ -246,7 +248,7 @@ class SymbolGlyph:
             ax.plot([x_offset + config.CENTER_X, x_offset + config.CENTER_X],
                    [config.FRACTION_Y + config.UPPER_GAP, 
                     config.VERTICAL_EXTENSION_UP],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             # Draw center bridge line
             ax = self.draw_center_bridge_line_at_position(ax, x_offset)
         
@@ -255,20 +257,21 @@ class SymbolGlyph:
             ax.plot([x_offset + config.LEFT_X, x_offset + config.LEFT_X],
                    [config.FRACTION_Y - config.LOWER_GAP, 
                     config.HALF_EXTENSION_DOWN],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             
         if self.active_components[GlyphComponents.LOWER_CENTER_VERTICAL]:
             ax.plot([x_offset + config.CENTER_X, x_offset + config.CENTER_X],
                    [config.FRACTION_Y - config.LOWER_GAP, 
                     config.VERTICAL_EXTENSION_DOWN],
-                   'k-', linewidth=1.5)
+                   'k-', linewidth=self.config.LINEWIDTH)
             
         # Draw circle if present
         if self.active_components[GlyphComponents.LOWER_CIRCLE]:
             circle = plt.Circle((x_offset + config.CENTER_X, 
                                config.VERTICAL_EXTENSION_DOWN + config.CIRCLE_OFFSET),
                               config.CIRCLE_RADIUS,
-                              fill=False, color='black')
+                              fill=False, color='black',
+                                lw=self.config.LINEWIDTH)
             ax.add_artist(circle)
         
         # Draw diamond edges with offset
@@ -297,33 +300,36 @@ class SymbolGlyph:
         if position == "upper":
             # Handle upper diamond edges
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=self.config.LINEWIDTH)
                 # Add center bridge line
-                ax = self.draw_center_bridge_line_at_position(ax, x_offset)
+                # ax = self.draw_center_bridge_line_at_position(ax, x_offset)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 # Add center bridge line
-                ax = self.draw_center_bridge_line_at_position(ax, x_offset)
+                # ax = self.draw_center_bridge_line_at_position(ax, x_offset)
+                # this rule is weird: we only draw this when there is also a lower center vertical
+                if self.active_components[getattr(components, "LOWER_CENTER_VERTICAL")]:
+                    ax = self.draw_center_bridge_line_at_position(ax, x_offset)
         else:
             # Handle lower diamond edges (unchanged)
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
-                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=1.5)
+                ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
-                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=1.5)
+                ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
 
 class SymbolChain:
     """Class to handle chains of symbols"""
@@ -344,7 +350,7 @@ class SymbolChain:
         ax.axis('off')
         
         # Draw the continuous fraction line
-        ax.axhline(y=self.config.FRACTION_Y, color='black', linewidth=1.5,
+        ax.axhline(y=self.config.FRACTION_Y, color='black', linewidth=self.config.LINEWIDTH,
                   xmin=0, xmax=len(self.glyphs))
         
         # Render each glyph
