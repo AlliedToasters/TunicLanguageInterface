@@ -6,6 +6,17 @@ from pathlib import Path
 import json
 from typing import Dict, Optional
 
+def initialize_letter_db():
+    """Initialize the letters database if it doesn't exist"""
+    db_path = Path("data/letters.json")
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    if not db_path.exists():
+        with open(db_path, "w") as f:
+            json.dump({}, f)
+    
+    return db_path
+
 def load_letters():
     """Load all saved letters from the database"""
     db_path = Path("data/letters.json")
@@ -13,6 +24,18 @@ def load_letters():
         with open(db_path, "r") as f:
             return json.load(f)
     return {}
+
+def save_letter(letter_data: dict):
+    """Save a letter to the database"""
+    db_path = initialize_letter_db()
+    with open(db_path, "r") as f:
+        db = json.load(f)
+    
+    letter_id = letter_data["id"]
+    db[letter_id] = letter_data
+    
+    with open(db_path, "w") as f:
+        json.dump(db, f, indent=2)
 
 def create_letter_preview(components: list) -> Optional[plt.Figure]:
     """Create a preview figure for a letter from its components"""
@@ -45,3 +68,9 @@ def render_letter_gallery(letters_db: Dict, columns: int = 4):
             st.pyplot(fig)
             if letter_data.get("location_found"):
                 st.caption(f"Found: {letter_data['location_found']}")
+
+def render_letter_preview(glyph: SymbolGlyph):
+    """Render the glyph and return the figure"""
+    fig, ax = plt.subplots(figsize=(4, 6))
+    glyph.render(ax)
+    return fig

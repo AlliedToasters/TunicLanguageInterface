@@ -6,45 +6,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from components.letter_gallery import render_letter_gallery
+from components.letter_gallery import render_letter_gallery, load_letters, save_letter, render_letter_preview
 from components.identity import find_duplicate_letter
-
-def initialize_db():
-    """Initialize the letters database if it doesn't exist"""
-    db_path = Path("data/letters.json")
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    if not db_path.exists():
-        with open(db_path, "w") as f:
-            json.dump({}, f)
-    
-    return db_path
-
-def load_letters():
-    """Load all saved letters from the database"""
-    db_path = Path("data/letters.json")
-    if db_path.exists():
-        with open(db_path, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_letter(letter_data: dict):
-    """Save a letter to the database"""
-    db_path = initialize_db()
-    with open(db_path, "r") as f:
-        db = json.load(f)
-    
-    letter_id = letter_data["id"]
-    db[letter_id] = letter_data
-    
-    with open(db_path, "w") as f:
-        json.dump(db, f, indent=2)
-
-def render_preview(glyph: SymbolGlyph):
-    """Render the glyph and return the figure"""
-    fig, ax = plt.subplots(figsize=(4, 6))
-    glyph.render(ax)
-    return fig
 
 def main():
     st.title("Letter Creator")
@@ -141,7 +104,7 @@ def main():
         # Show preview in second column
         with col2:
             st.subheader("Preview")
-            fig = render_preview(glyph)
+            fig = render_letter_preview(glyph)
             st.pyplot(fig)
             
             # Check for duplicates before showing save controls

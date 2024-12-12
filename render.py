@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from typing import List, Optional, Sequence
 
-@dataclass
 class SymbolConfig:
     """Configuration constants for symbol rendering"""
     FRACTION_Y = 0.0  # y-position of fraction line
@@ -11,13 +10,17 @@ class SymbolConfig:
     VERTICAL_EXTENSION_DOWN = -1.0  # full height below fraction
     HALF_EXTENSION_UP = 0.5  # half height above fraction
     HALF_EXTENSION_DOWN = -0.5  # half height below fraction
-    CENTER_X = 0.5  # x-position of center
+    CENTER_X = 0.5  # x-position of center within a single glyph
     LEFT_X = 0.0  # x-position of left vertical
     RIGHT_X = 1.0  # x-position of right vertical (for reference)
     LOWER_GAP = 0.1  # gap between fraction line and lower elements
+    UPPER_GAP = 0.1  # gap between fraction line and upper elements
     DIAMOND_ANGLE = 45  # angle of diamond edges in degrees
     CIRCLE_RADIUS = 0.05  # radius of the small circle
     CIRCLE_OFFSET = -0.05  # offset of the circle from the center
+    GLYPH_WIDTH = 1.0  # width of a single glyph
+    GLYPH_SPACING = 0.0  # spacing between glyphs (0 for shared verticals)
+    BRIDGE_LENGTH = 0.1  # length of the tiny bridge lines
 
 class GlyphComponents:
     """Enumeration of possible glyph components"""
@@ -47,7 +50,6 @@ class GlyphComponents:
 class SymbolGlyph:
     def __init__(self):
         self.config = SymbolConfig()
-        # Initialize with uppercase component names
         self.active_components = {
             component: False for component in GlyphComponents.all_components()
         }
@@ -84,6 +86,20 @@ class SymbolGlyph:
                 symbol.activate_component(component)
         return symbol
     
+    def draw_center_bridge_line(self, ax: plt.Axes) -> plt.Axes:
+        ax.plot([self.config.CENTER_X, self.config.CENTER_X],
+                [self.config.FRACTION_Y, 
+                self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
+                'k-', linewidth=1.5)
+        return ax
+    
+    def draw_left_bridge_line(self, ax: plt.Axes) -> plt.Axes:
+        ax.plot([self.config.LEFT_X, self.config.LEFT_X],
+                [self.config.FRACTION_Y, 
+                self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
+                'k-', linewidth=1.5)
+        return ax
+    
     def render(self, ax: Optional[plt.Axes] = None) -> plt.Axes:
         """Render the symbol"""
         if ax is None:
@@ -98,16 +114,24 @@ class SymbolGlyph:
         # Draw fraction line
         ax.axhline(y=self.config.FRACTION_Y, color='black', linewidth=1.5)
         
-        # Draw upper components
+        # Draw upper components with gap
         if self.active_components[GlyphComponents.UPPER_LEFT_VERTICAL]:
+            # Draw the main vertical line starting from above the gap
             ax.plot([self.config.LEFT_X, self.config.LEFT_X],
-                   [self.config.FRACTION_Y, self.config.HALF_EXTENSION_UP],
+                   [self.config.FRACTION_Y + self.config.UPPER_GAP, 
+                    self.config.HALF_EXTENSION_UP],
                    'k-', linewidth=1.5)
+            # Draw left bridge line
+            ax = self.draw_left_bridge_line(ax)
             
         if self.active_components[GlyphComponents.UPPER_CENTER_VERTICAL]:
+            # Draw the main vertical line starting from above the gap
             ax.plot([self.config.CENTER_X, self.config.CENTER_X],
-                   [self.config.FRACTION_Y, self.config.VERTICAL_EXTENSION_UP],
+                   [self.config.FRACTION_Y + self.config.UPPER_GAP, 
+                    self.config.VERTICAL_EXTENSION_UP],
                    'k-', linewidth=1.5)
+            # Draw the center bridge line
+            ax = self.draw_center_bridge_line(ax)
         
         # Draw lower components with gap
         if self.active_components[GlyphComponents.LOWER_LEFT_VERTICAL]:
@@ -130,18 +154,17 @@ class SymbolGlyph:
                               fill=False, color='black')
             ax.add_artist(circle)
         
-        # Draw diamond edges
+        # Draw diamond edges with gaps and bridges
         self._render_diamond_edges(ax, "upper")
         self._render_diamond_edges(ax, "lower")
         
         return ax
     
-    
     def _render_diamond_edges(self, ax: plt.Axes, position: str):
         """Helper method to render diamond edges for upper or lower section"""
         config = self.config
-        y_offset = config.LOWER_GAP if position == "lower" else 0
-        base_y = config.FRACTION_Y - y_offset if position == "lower" else config.FRACTION_Y
+        y_offset = config.LOWER_GAP if position == "lower" else config.UPPER_GAP
+        base_y = config.FRACTION_Y - y_offset if position == "lower" else config.FRACTION_Y + y_offset
         
         # Calculate diamond points
         left_top = (config.LEFT_X, 
@@ -153,16 +176,16 @@ class SymbolGlyph:
         right_ref = (config.RIGHT_X,
                     config.HALF_EXTENSION_UP if position == "upper"
                     else config.HALF_EXTENSION_DOWN)
-            
         
         prefix = "UPPER_" if position == "upper" else "LOWER_"
-        
-        # Draw diamond edges if active
         components = GlyphComponents
-
-        if position == "upper": 
+        
+        if position == "upper":
+            # Handle upper diamond edges
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=1.5)
+                # Add center bridge line
+                ax = self.draw_center_bridge_line(ax)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
@@ -172,7 +195,10 @@ class SymbolGlyph:
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
                 ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=1.5)
+                # Add center bridge line
+                ax = self.draw_center_bridge_line(ax)
         else:
+            # Handle lower diamond edges (unchanged)
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
                 
@@ -185,22 +211,44 @@ class SymbolGlyph:
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
                 ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=1.5)
 
-    # [Previous SymbolGlyph code remains the same, except for render method which will be simplified]
+    def draw_center_bridge_line_at_position(self, ax: plt.Axes, x_offset: float) -> plt.Axes:
+        ax.plot([x_offset + self.config.CENTER_X, x_offset + self.config.CENTER_X],
+                [self.config.FRACTION_Y, 
+                self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
+                'k-', linewidth=1.5)
+        return ax
+    
+    def draw_left_bridge_line_at_position(self, ax: plt.Axes, x_offset: float) -> plt.Axes:
+        ax.plot([x_offset + self.config.LEFT_X, x_offset + self.config.LEFT_X],
+                [self.config.FRACTION_Y, 
+                self.config.FRACTION_Y + self.config.BRIDGE_LENGTH],
+                'k-', linewidth=1.5)
+        return ax
+
+
     def render_at_position(self, ax: plt.Axes, position: int) -> None:
         """Render this glyph at a specific position in a chain"""
         config = self.config
         x_offset = position * (config.GLYPH_WIDTH + config.GLYPH_SPACING)
         
-        # Draw upper components
+        # Draw upper components with gap
         if self.active_components[GlyphComponents.UPPER_LEFT_VERTICAL]:
+            # Draw the main vertical line starting from above the gap
             ax.plot([x_offset + config.LEFT_X, x_offset + config.LEFT_X],
-                   [config.FRACTION_Y, config.HALF_EXTENSION_UP],
+                   [config.FRACTION_Y + config.UPPER_GAP, 
+                    config.HALF_EXTENSION_UP],
                    'k-', linewidth=1.5)
+            # Draw left bridge line
+            ax = self.draw_left_bridge_line_at_position(ax, x_offset)
             
         if self.active_components[GlyphComponents.UPPER_CENTER_VERTICAL]:
+            # Draw the main vertical line starting from above the gap
             ax.plot([x_offset + config.CENTER_X, x_offset + config.CENTER_X],
-                   [config.FRACTION_Y, config.VERTICAL_EXTENSION_UP],
+                   [config.FRACTION_Y + config.UPPER_GAP, 
+                    config.VERTICAL_EXTENSION_UP],
                    'k-', linewidth=1.5)
+            # Draw center bridge line
+            ax = self.draw_center_bridge_line_at_position(ax, x_offset)
         
         # Draw lower components with gap
         if self.active_components[GlyphComponents.LOWER_LEFT_VERTICAL]:
@@ -230,8 +278,8 @@ class SymbolGlyph:
     def _render_diamond_edges_at_position(self, ax: plt.Axes, position: str, x_offset: float):
         """Helper method to render diamond edges for upper or lower section at a specific position"""
         config = self.config
-        y_offset = config.LOWER_GAP if position == "lower" else 0
-        base_y = config.FRACTION_Y - y_offset if position == "lower" else config.FRACTION_Y
+        y_offset = config.LOWER_GAP if position == "lower" else config.UPPER_GAP
+        base_y = config.FRACTION_Y - y_offset if position == "lower" else config.FRACTION_Y + y_offset
         
         # Calculate diamond points with x_offset
         if position == "upper":
@@ -239,7 +287,6 @@ class SymbolGlyph:
             center_top = (x_offset + config.CENTER_X, config.VERTICAL_EXTENSION_UP)
             right_ref = (x_offset + config.RIGHT_X, config.HALF_EXTENSION_UP)
         else:
-            # For lower position, we need to invert the vertical relationships
             left_top = (x_offset + config.LEFT_X, config.HALF_EXTENSION_DOWN)
             center_top = (x_offset + config.CENTER_X, config.VERTICAL_EXTENSION_DOWN)
             right_ref = (x_offset + config.RIGHT_X, config.HALF_EXTENSION_DOWN)
@@ -248,9 +295,11 @@ class SymbolGlyph:
         components = GlyphComponents
         
         if position == "upper":
-            # Upper diamond edge rendering (unchanged)
+            # Handle upper diamond edges
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=1.5)
+                # Add center bridge line
+                ax = self.draw_center_bridge_line_at_position(ax, x_offset)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
@@ -260,8 +309,10 @@ class SymbolGlyph:
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
                 ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=1.5)
+                # Add center bridge line
+                ax = self.draw_center_bridge_line_at_position(ax, x_offset)
         else:
-            # Lower diamond edge rendering (corrected geometry)
+            # Handle lower diamond edges (unchanged)
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=1.5)
                 
@@ -273,49 +324,6 @@ class SymbolGlyph:
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_RIGHT")]:
                 ax.plot([center_top[0], right_ref[0]], [center_top[1], right_ref[1]], 'k-', linewidth=1.5)
-
-@dataclass
-class SymbolConfig:
-    """Configuration constants for symbol rendering"""
-    FRACTION_Y = 0.0  # y-position of fraction line
-    VERTICAL_EXTENSION_UP = 1.0  # full height above fraction
-    VERTICAL_EXTENSION_DOWN = -1.0  # full height below fraction
-    HALF_EXTENSION_UP = 0.5  # half height above fraction
-    HALF_EXTENSION_DOWN = -0.5  # half height below fraction
-    CENTER_X = 0.5  # x-position of center within a single glyph
-    LEFT_X = 0.0  # x-position of left vertical
-    RIGHT_X = 1.0  # x-position of right vertical (for reference)
-    LOWER_GAP = 0.1  # gap between fraction line and lower elements
-    DIAMOND_ANGLE = 45  # angle of diamond edges in degrees
-    CIRCLE_RADIUS = 0.05  # radius of the small circle
-    CIRCLE_OFFSET = -0.05  # offset of the circle from the center
-    GLYPH_WIDTH = 1.0  # width of a single glyph
-    GLYPH_SPACING = 0.0  # spacing between glyphs (0 for shared verticals)
-
-class GlyphComponents:
-    """Enumeration of possible glyph components"""
-    # Upper components
-    UPPER_LEFT_VERTICAL = "UPPER_LEFT_VERTICAL"
-    UPPER_CENTER_VERTICAL = "UPPER_CENTER_VERTICAL"
-    UPPER_DIAMOND_LOWER_LEFT = "UPPER_DIAMOND_LOWER_LEFT"
-    UPPER_DIAMOND_UPPER_LEFT = "UPPER_DIAMOND_UPPER_LEFT"
-    UPPER_DIAMOND_UPPER_RIGHT = "UPPER_DIAMOND_UPPER_RIGHT"
-    UPPER_DIAMOND_LOWER_RIGHT = "UPPER_DIAMOND_LOWER_RIGHT"
-    
-    # Lower components
-    LOWER_LEFT_VERTICAL = "LOWER_LEFT_VERTICAL"
-    LOWER_CENTER_VERTICAL = "LOWER_CENTER_VERTICAL"
-    LOWER_DIAMOND_LOWER_LEFT = "LOWER_DIAMOND_LOWER_LEFT"
-    LOWER_DIAMOND_UPPER_LEFT = "LOWER_DIAMOND_UPPER_LEFT"
-    LOWER_DIAMOND_UPPER_RIGHT = "LOWER_DIAMOND_UPPER_RIGHT"
-    LOWER_DIAMOND_LOWER_RIGHT = "LOWER_DIAMOND_LOWER_RIGHT"
-    LOWER_CIRCLE = "LOWER_CIRCLE"
-    
-    @classmethod
-    def all_components(cls) -> List[str]:
-        """Return all possible component names"""
-        return [getattr(cls, attr) for attr in dir(cls) 
-                if not attr.startswith('_') and isinstance(getattr(cls, attr), str)]
 
 class SymbolChain:
     """Class to handle chains of symbols"""

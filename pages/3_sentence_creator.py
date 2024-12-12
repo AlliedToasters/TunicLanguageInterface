@@ -5,55 +5,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from components.word_gallery import render_word_gallery, load_words, create_glyph_from_components
-from components.sentence_gallery import render_sentence_gallery, load_sentences
-
-def initialize_sentences_db():
-    """Initialize the sentences database if it doesn't exist"""
-    db_path = Path("data/sentences.json")
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    if not db_path.exists():
-        with open(db_path, "w") as f:
-            json.dump({}, f)
-    
-    return db_path
-
-def save_sentence(sentence_data: dict):
-    """Save a sentence to the database"""
-    db_path = initialize_sentences_db()
-    with open(db_path, "r") as f:
-        db = json.load(f)
-    
-    sentence_id = sentence_data["id"]
-    db[sentence_id] = sentence_data
-    
-    with open(db_path, "w") as f:
-        json.dump(db, f, indent=2)
-
-def render_sentence_preview(sentence_components, words_db):
-    """Render the visual preview of the sentence"""
-    # Create separate figures for each symbol word
-    word_figures = []
-    
-    for item in sentence_components:
-        if item["type"] == "word":
-            word_data = words_db[item["content"]]
-            # Create glyphs from components
-            glyphs = [create_glyph_from_components(letter_components) 
-                     for letter_components in word_data["components"]]
-            
-            # Create figure for this word
-            fig, ax = plt.subplots(figsize=(len(glyphs) * 1.5, 3))
-            word_chain = SymbolChain(glyphs)
-            word_chain.render(ax)
-            plt.close()
-            word_figures.append((fig, item["type"]))
-        else:
-            # For non-symbol components, we'll just pass them through
-            word_figures.append((item["content"], item["type"]))
-    
-    return word_figures
+from components.word_gallery import render_word_gallery, load_words
+from components.sentence_gallery import render_sentence_gallery, load_sentences, save_sentence, render_sentence_preview
 
 def sentence_creator():
     st.title("Sentence Creator")
