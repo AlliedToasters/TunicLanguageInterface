@@ -6,25 +6,27 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from components.letter_gallery import render_letter_gallery, load_letters, save_letter, render_letter_preview
+from components.letter_gallery import render_letter_gallery, load_letters, save_letter, render_letter_preview, letter_creator_interface
 from components.identity import find_duplicate_letter
 
 def main():
     st.title("Letter Creator")
 
+    letters_db = load_letters()
+    letter_creator_interface()
     # Create tabs for create and gallery views
     tab1, tab2 = st.tabs(["Create Letter", "Letter Gallery"])
     
     with tab1:
         # (Previous letter creator code remains the same until the end)
         # After success message in save operation, add:
+        glyph = st.session_state.get("current_glyph", SymbolGlyph)
         if "show_gallery" not in st.session_state:
             st.session_state.show_gallery = False
             
         if st.session_state.get("show_gallery", False):
             st.divider()
             letters_db = load_letters()
-            render_letter_gallery(letters_db)
 
     
         # Initialize session state for the glyph
@@ -34,78 +36,11 @@ def main():
         # Load existing letters
         letters_db = load_letters()
         
-        # Create two columns for layout
-        col1, col2 = st.columns([2, 3])
-        
-        with col1:
-            st.subheader("Components")
-            
-            # Upper components
-            st.write("Upper Components:")
-            upper_verticals = st.checkbox("Upper Left Vertical", key="upper_left_vert")
-            upper_center = st.checkbox("Upper Center Vertical", key="upper_center")
-            
-            st.write("Upper Diamond:")
-            upper_diamond = {
-                "upper_left": st.checkbox("Upper Left Edge", key="upper_diamond_ul"),
-                "upper_right": st.checkbox("Upper Right Edge", key="upper_diamond_ur"),
-                "lower_left": st.checkbox("Lower Left Edge", key="upper_diamond_ll"),
-                "lower_right": st.checkbox("Lower Right Edge", key="upper_diamond_lr")
-            }
-            
-            # Lower components
-            st.write("Lower Components:")
-            lower_verticals = st.checkbox("Lower Left Vertical", key="lower_left_vert")
-            lower_center = st.checkbox("Lower Center Vertical", key="lower_center")
-            lower_circle = st.checkbox("Lower Circle", key="lower_circle")
-            
-            st.write("Lower Diamond:")
-            lower_diamond = {
-                "upper_left": st.checkbox("Upper Left Edge", key="lower_diamond_ul"),
-                "upper_right": st.checkbox("Upper Right Edge", key="lower_diamond_ur"),
-                "lower_left": st.checkbox("Lower Left Edge", key="lower_diamond_ll"),
-                "lower_right": st.checkbox("Lower Right Edge", key="lower_diamond_lr")
-            }
-        
-        # Create a new glyph based on selections
-        glyph = SymbolGlyph()
-        
-        # Activate components based on selections
-        if upper_verticals:
-            glyph.activate_component(GlyphComponents.UPPER_LEFT_VERTICAL)
-        if upper_center:
-            glyph.activate_component(GlyphComponents.UPPER_CENTER_VERTICAL)
-        if lower_verticals:
-            glyph.activate_component(GlyphComponents.LOWER_LEFT_VERTICAL)
-        if lower_center:
-            glyph.activate_component(GlyphComponents.LOWER_CENTER_VERTICAL)
-        if lower_circle:
-            glyph.activate_component(GlyphComponents.LOWER_CIRCLE)
-            
-        # Activate diamond components
-        if upper_diamond["upper_left"]:
-            glyph.activate_component(GlyphComponents.UPPER_DIAMOND_UPPER_LEFT)
-        if upper_diamond["upper_right"]:
-            glyph.activate_component(GlyphComponents.UPPER_DIAMOND_UPPER_RIGHT)
-        if upper_diamond["lower_left"]:
-            glyph.activate_component(GlyphComponents.UPPER_DIAMOND_LOWER_LEFT)
-        if upper_diamond["lower_right"]:
-            glyph.activate_component(GlyphComponents.UPPER_DIAMOND_LOWER_RIGHT)
-            
-        if lower_diamond["upper_left"]:
-            glyph.activate_component(GlyphComponents.LOWER_DIAMOND_UPPER_LEFT)
-        if lower_diamond["upper_right"]:
-            glyph.activate_component(GlyphComponents.LOWER_DIAMOND_UPPER_RIGHT)
-        if lower_diamond["lower_left"]:
-            glyph.activate_component(GlyphComponents.LOWER_DIAMOND_LOWER_LEFT)
-        if lower_diamond["lower_right"]:
-            glyph.activate_component(GlyphComponents.LOWER_DIAMOND_LOWER_RIGHT)
-        
-        # Show preview in second column
-        with col2:
+        with tab1:
             st.subheader("Preview")
+            glyph = st.session_state.get("current_glyph", SymbolGlyph())
             fig = render_letter_preview(glyph)
-            st.pyplot(fig)
+            st.pyplot(fig, use_container_width=False)
             
             # Check for duplicates before showing save controls
             duplicate_id = find_duplicate_letter(glyph, letters_db)
@@ -114,6 +49,9 @@ def main():
                 
             # Metadata and save controls
             st.subheader("Letter Details")
+            letters = load_letters()
+            highest_letter_id = max([int(key) for key in letters.keys() if isinstance(key, str) and key.isnumeric()])
+            st.write(f"There are currently {len(letters)} letters in the db with the highest ID being: {highest_letter_id}")
             letter_id = st.text_input("Letter ID (required)", 
                                     help="Unique identifier for this letter")
             notes = st.text_area("Notes", 
@@ -138,8 +76,7 @@ def main():
                     st.success(f"Letter '{letter_id}' saved successfully!")
 
     with tab2:
-        letters_db = load_letters()
-        render_letter_gallery(letters_db)  # Larger previews in gallery tab
+        render_letter_gallery(letters_db)
 
 
 if __name__ == "__main__":

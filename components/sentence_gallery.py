@@ -7,7 +7,22 @@ import json
 from typing import Dict, List, Tuple
 
 from components.word_gallery import create_glyph_from_letter_id
-from components.letter_gallery import load_letters
+
+def load_letters():
+    """Load all saved letters from the database"""
+    db_path = Path("data/letters.json")
+    if db_path.exists():
+        with open(db_path, "r") as f:
+            return json.load(f)
+    return {}
+
+def load_words():
+    """Load all saved words from the database"""
+    db_path = Path("data/words.json")
+    if db_path.exists():
+        with open(db_path, "r") as f:
+            return json.load(f)
+    return {}
 
 def load_sentences():
     """Load all saved sentences from the database"""

@@ -7,18 +7,22 @@ from datetime import datetime
 from pathlib import Path
 
 from components.word_gallery import render_word_gallery, save_word, load_words, render_word_preview
-from components.letter_gallery import load_letters, render_letter_gallery
+from components.letter_gallery import load_letters, render_letter_gallery, letter_creator_interface
+from components.sentence_gallery import load_sentences
 from components.identity import find_duplicate_word
+from components.analytics import translate_words_from_english_freq
 
 def word_creator():
     st.title("Word Creator")
-    
+    letter_creator_interface(subheader="Filter Letters")
+
     # Create tabs for create and galleries
     tab1, tab3 = st.tabs(["Create Word", "Word Gallery"])
     
     # Load available letters
     letters_db = load_letters()
     words_db = load_words()
+
 
     with tab1:
         # Initialize session state for the current word
@@ -59,7 +63,11 @@ def word_creator():
                 st.write("Add letters to preview the word")
             
             # Word metadata
+    
             st.subheader("Word Details")
+            words = load_words()
+            highest_word_index = max([int(word) for word in words if isinstance(word, str) and word.isnumeric()])
+            st.write(f"There are currently {len(words)} words in the database with the highest index being {highest_word_index}.")
             word_id = st.text_input("Word ID (required)", 
                                   help="Unique identifier for this word")
             translation = st.text_input("Translation", 
@@ -90,6 +98,22 @@ def word_creator():
                 st.success(f"Word '{word_id}' saved successfully!")
 
     with tab3:
+        if st.button("Translate from English word frequency distribution"):
+            try:
+                letters, words, sentences = load_letters(), load_words(), load_sentences()
+                translate_words_from_english_freq(
+                    letters,
+                    words,
+                    sentences
+                )
+                st.warning("Word translations have been updated in the database!")
+            except FileNotFoundError:
+                msg = "Error: No English language data found on this device."
+                msg += "\nPlease acquire some English text and place it in a file called"
+                msg += "\nenglish_sample.txt next to this program entrypoint (app.py)"
+                st.error(msg)
+
+
         render_word_gallery(words_db)
 
 if __name__ == "__main__":

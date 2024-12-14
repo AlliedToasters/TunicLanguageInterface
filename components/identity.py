@@ -1,5 +1,8 @@
 from typing import List
 from render import SymbolGlyph, SymbolChain
+import string
+
+import numpy as np
 
 def get_active_components_set(glyph: SymbolGlyph):
     """Convert glyph's active components to a frozenset for comparison"""

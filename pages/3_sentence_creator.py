@@ -94,6 +94,9 @@ def sentence_creator():
         
         # Sentence metadata
         st.subheader("Sentence Details")
+        sentences = load_sentences()
+        highest_sentence_index = max([int(sentence) for sentence in sentences if isinstance(sentence, str) and sentence.isnumeric()])
+        st.write(f"There are currently {len(sentences)} sentences with the hightest index being: {highest_sentence_index}.") 
         sentence_id = st.text_input("Sentence ID (required)",
                                 help="Unique identifier for this sentence")
         translation = st.text_input("Full Translation",

@@ -5,11 +5,32 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import json
 from typing import Dict, Optional, List
-from components.letter_gallery import load_letters
+import io
+import base64
+from PIL import Image
+from st_clickable_images import clickable_images
+
+from components.analytics import get_freq_distibution
+
+def load_letters():
+    """Load all saved letters from the database"""
+    db_path = Path("data/letters.json")
+    if db_path.exists():
+        with open(db_path, "r") as f:
+            return json.load(f)
+    return {}
 
 def load_words():
     """Load all saved words from the database"""
     db_path = Path("data/words.json")
+    if db_path.exists():
+        with open(db_path, "r") as f:
+            return json.load(f)
+    return {}
+
+def load_sentences():
+    """Load all saved sentences from the database"""
+    db_path = Path("data/sentences.json")
     if db_path.exists():
         with open(db_path, "r") as f:
             return json.load(f)
@@ -68,70 +89,20 @@ def create_word_preview(letter_ids: List[str], letters_db: Dict) -> Optional[plt
     plt.close()
     return fig
 
-# def render_word_gallery(words_db: Dict, columns: int = 2):
-#     """Render a grid of word previews with their IDs and translations"""
-#     st.subheader("Word Gallery")
-    
-#     if not words_db:
-#         st.write("No words saved yet!")
-#         return
-    
-#     # Load letters database for rendering
-#     letters_db = load_letters()
-    
-#     # Add search/filter options
-#     search_term = st.text_input("Search words (ID, translation, or location)", "")
-    
-#     # Filter words based on search
-#     filtered_words = {
-#         id_: data for id_, data in words_db.items()
-#         if (search_term.lower() in id_.lower() or
-#             search_term.lower() in data.get("translation", "").lower() or
-#             search_term.lower() in data.get("location_found", "").lower())
-#     }
-    
-#     if not filtered_words:
-#         st.write("No matching words found.")
-#         return
-    
-#     # Create columns for the grid layout
-#     cols = st.columns(columns)
-    
-#     # Distribute words across columns
-#     for idx, (word_id, word_data) in enumerate(filtered_words.items()):
-#         with cols[idx % columns]:
-#             st.write(f"ID: {word_id}")
-#             if word_data.get("translation"):
-#                 st.caption(f"Translation: {word_data['translation']}")
-                
-#             # Show letter IDs that make up the word
-#             st.caption("Letters: " + " ".join(word_data["letter_ids"]))
-            
-#             # Create and show word preview
-#             fig = create_word_preview(word_data["letter_ids"], letters_db)
-#             if fig:
-#                 st.pyplot(fig)
-            
-#             if word_data.get("location_found"):
-#                 st.caption(f"Found: {word_data['location_found']}")
-#             if word_data.get("notes"):
-#                 with st.expander("Notes"):
-#                     st.write(word_data["notes"])
-
-import io
-import base64
-from PIL import Image
-from st_clickable_images import clickable_images
-
 def render_word_gallery(words_db: Dict, columns: int = 4, callback=None):
-    """Render a grid of clickable word previews with their IDs and translations"""
+    """Render a grid of clickable word previews with their IDs and translations, sorted by frequency"""
     
     if not words_db:
         st.write("No words saved yet!")
         return
     
-    # Load letters database for rendering
+    # Load letters database for rendering and get frequency distribution
     letters_db = load_letters()
+    sentences_db = load_sentences()
+    word_frequency, word_counts, _, _ = get_freq_distibution(letters_db, words_db, sentences_db)
+    
+    # Create frequency lookup dictionary
+    frequency_dict = dict(zip(word_frequency, word_counts))
     
     # Add search/filter options
     search_term = st.text_input("Search words (ID, translation, or location)", "")
@@ -148,12 +119,21 @@ def render_word_gallery(words_db: Dict, columns: int = 4, callback=None):
         st.write("No matching words found.")
         return
     
+    # Sort filtered words by frequency
+    sorted_items = sorted(
+        filtered_words.items(),
+        key=lambda x: frequency_dict.get(x[0], 0),  # Default to 0 if word not found
+        reverse=True
+    )
+    filtered_words = dict(sorted_items)
+    
     # Create lists to store the encoded images, titles, and word data
     images = []
     titles = []
     word_data_list = []
+    ordered_word_ids = []  # Keep track of word IDs in display order
     
-    # Iterate over the filtered words and create encoded images
+    # Iterate over the filtered and sorted words
     for word_id, word_data in filtered_words.items():
         fig = create_word_preview(word_data["letter_ids"], letters_db)
         if fig:
@@ -169,9 +149,11 @@ def render_word_gallery(words_db: Dict, columns: int = 4, callback=None):
             encoded_img = base64.b64encode(buffered.getvalue()).decode()
             images.append(f"data:image/png;base64,{encoded_img}")
             
-            # Add the title and word data
-            titles.append(f"Word {word_id}")
+            # Add the title, word data, and ID
+            freq = frequency_dict.get(word_id, 0)
+            titles.append(f"Word {word_id} (f:{freq})")
             word_data_list.append(word_data)
+            ordered_word_ids.append(word_id)
     
     # Display the clickable images
     clicked_index = clickable_images(
@@ -182,7 +164,7 @@ def render_word_gallery(words_db: Dict, columns: int = 4, callback=None):
     )
     
     if clicked_index > -1:
-        clicked_word_id = list(filtered_words.keys())[clicked_index]
+        clicked_word_id = ordered_word_ids[clicked_index]  # Use ordered list instead of filtered_words.keys()
         clicked_word_data = word_data_list[clicked_index]
         st.write(f"Clicked on word: {clicked_word_id}")
         
@@ -202,11 +184,9 @@ def render_word_gallery(words_db: Dict, columns: int = 4, callback=None):
         if old_clicked_word != new_clicked_word:
             # if, only if, the clicked word has changed
             if callback:
-                callback(new_clicked_word) #!!! this is the callback function USE WITH EXTREME CAUTION
+                callback(new_clicked_word)
                 
             st.session_state.clicked_word = new_clicked_word
-
-
             
     else:
         st.write("No word clicked")
