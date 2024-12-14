@@ -21,14 +21,9 @@ def find_duplicate_letter(glyph: SymbolGlyph, letters_db: dict):
 
 def find_duplicate_word(current_letters: List[str], words_db: dict):
     """
-    Check if a word with the same letter IDs already exists.
-    Returns the word ID if found, None otherwise.
+    order matters
     """
-    current_letters = sorted(current_letters)
-    
     for word_id, word_data in words_db.items():
-        # Sort stored letter IDs to ensure consistent comparison
-        stored_letters = sorted(word_data["letter_ids"])
-        if current_letters == stored_letters:
+        if current_letters == word_data["letter_ids"]:
             return word_id
     return None

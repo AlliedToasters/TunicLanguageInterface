@@ -186,8 +186,9 @@ class SymbolGlyph:
             # Handle upper diamond edges
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=self.config.LINEWIDTH)
-                # Add center bridge line
-                # ax = self.draw_center_bridge_line(ax)
+                if self.active_components[getattr(components, "LOWER_CENTER_VERTICAL")]:
+                    # Add center bridge line
+                    ax = self.draw_center_bridge_line(ax)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=self.config.LINEWIDTH)
@@ -301,8 +302,10 @@ class SymbolGlyph:
             # Handle upper diamond edges
             if self.active_components[getattr(components, f"{prefix}DIAMOND_LOWER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], base_y], 'k-', linewidth=self.config.LINEWIDTH)
-                # Add center bridge line
-                # ax = self.draw_center_bridge_line_at_position(ax, x_offset)
+                if self.active_components[getattr(components, "LOWER_CENTER_VERTICAL")]:
+                    # weird rule but it's the only way to match in-game rendering  ¯\_(ツ)_/¯ 
+                    # Add center bridge line
+                    ax = self.draw_center_bridge_line_at_position(ax, x_offset)
                 
             if self.active_components[getattr(components, f"{prefix}DIAMOND_UPPER_LEFT")]:
                 ax.plot([left_top[0], center_top[0]], [left_top[1], center_top[1]], 'k-', linewidth=self.config.LINEWIDTH)
@@ -314,7 +317,7 @@ class SymbolGlyph:
                 ax.plot([center_top[0], right_ref[0]], [base_y, right_ref[1]], 'k-', linewidth=self.config.LINEWIDTH)
                 # Add center bridge line
                 # ax = self.draw_center_bridge_line_at_position(ax, x_offset)
-                # this rule is weird: we only draw this when there is also a lower center vertical
+                # this rule is weird: we only draw this when there is also a lower center vertical ¯\_(ツ)_/¯
                 if self.active_components[getattr(components, "LOWER_CENTER_VERTICAL")]:
                     ax = self.draw_center_bridge_line_at_position(ax, x_offset)
         else:
