@@ -115,6 +115,18 @@ def render_word_gallery(words_db: Dict, columns: int = 4, callback=None):
             search_term.lower() in data.get("location_found", "").lower())
     }
     
+    selected_letters = st.session_state.get("filter_by_letters", [])
+    if len(selected_letters) > 0:
+        # filter down only to words
+        # containing all selected letters
+        new_filtered_words = {}
+        for word_id, word_data in filtered_words.items():
+            word_letters = word_data["letter_ids"]
+            if all([letter_id in word_letters for letter_id in selected_letters]):
+                new_filtered_words[word_id] = word_data
+
+        filtered_words = new_filtered_words
+
     if not filtered_words:
         st.write("No matching words found.")
         return

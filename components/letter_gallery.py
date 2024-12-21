@@ -24,7 +24,7 @@ import streamlit as st
 from render import SymbolGlyph, GlyphComponents
 from typing import Dict
 
-def letter_creator_interface(subheader: str="Letter Components"):
+def letter_creator_interface(subheader: str="Letter Components", show_preview: bool=False):
     """A compact letter creator interface using single-level columns"""
     
     st.subheader(subheader)
@@ -121,8 +121,48 @@ def letter_creator_interface(subheader: str="Letter Components"):
         glyph.activate_component(GlyphComponents.LOWER_DIAMOND_LOWER_LEFT)
     if lower_diamond["lower_right"]:
         glyph.activate_component(GlyphComponents.LOWER_DIAMOND_LOWER_RIGHT)
+
+    if show_preview:
+        fig = render_letter_preview(glyph, scaling_factor=0.15)
+        st.pyplot(fig, use_container_width=False)
+        if st.button("Save Letter"):
+            save_letter_from_glyph(glyph)
     
     st.session_state.current_glyph = glyph
+
+def save_letter_from_glyph(glyph: SymbolGlyph):
+    """Save a letter to the database from a glyph"""
+    letters_db = load_letters()
+    highest_id = max([int(key) for key in letters_db.keys() if key.isnumeric()], default=0)
+    new_id = str(highest_id + 1)
+    letter_data = {
+        "id": new_id,
+        "components": [key for key, value in glyph.active_components.items() if value],
+        "notes": "Automatically created letter",
+        "location": "Automatically created letter"
+    }
+    save_letter(letter_data)
+    st.write(f"Letter {new_id} saved successfully!")
+
+def _automatically_create_letter(active_components: list):
+    """
+    Creates a letter while skipping the entire form.
+    The id is an integer greater than the highest id in the db.
+    The rest of the information is not important.
+    """
+    letters_db = load_letters()
+    highest_id = max([int(key) for key in letters_db.keys() if key.isnumeric()])
+    new_id = str(highest_id + 1)
+    new_letter = {
+        "id": new_id,
+        "components": active_components,
+        "notes": "Automatically created letter",
+        "location": "Automatically created letter"
+    }
+    save_letter(new_letter)
+    st.write(f"Letter {new_id} automatically created!")
+    time.sleep(1)
+    st.session_state.show_gallery = True
 
 def initialize_letter_db():
     """Initialize the letters database if it doesn't exist"""
@@ -183,7 +223,7 @@ def create_letter_preview(components: list) -> Optional[plt.Figure]:
     plt.close()
     return fig
 
-def render_letter_gallery(letters_db: Dict, columns: int = 5, incl_text: bool = True, callback=None):
+def render_letter_gallery(letters_db: Dict, show_top_k:int|None=None, callback=None):
     """Render a grid of clickable letter previews with their IDs"""
     
     if not letters_db:
@@ -223,6 +263,16 @@ def render_letter_gallery(letters_db: Dict, columns: int = 5, incl_text: bool = 
             if all([reference_component in item_components for reference_component in active_components]):
                 new_sorted_items.append((letter_id, item))
         sorted_items = new_sorted_items
+
+    if show_top_k:
+        sorted_items = sorted_items[:show_top_k]
+
+    if len(sorted_items) == 0:
+        st.write("No letters found with the selected components.")
+        # st.write("would you like to create this letter?")
+        if st.button("Create this letter?"):
+            _automatically_create_letter(active_components)
+        
     
     for letter_id, letter_data in sorted_items:
         ordered_letter_ids.append(letter_id)  # Store letter IDs in display order

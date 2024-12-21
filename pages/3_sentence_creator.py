@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from components.letter_gallery import render_letter_gallery, load_letters
 from components.word_gallery import render_word_gallery, load_words
 from components.sentence_gallery import render_sentence_gallery, load_sentences, save_sentence, render_sentence_preview
 
@@ -15,6 +16,7 @@ def sentence_creator():
     tab1, tab3 = st.tabs(["Compose Sentence", "Sentence Gallery"])
     
     # Load available words
+    letters_db = load_letters()
     words_db = load_words()
     sentences_db = load_sentences()
 
@@ -48,6 +50,17 @@ def sentence_creator():
         if st.button("Clear Sentence"):
             st.session_state.current_sentence = []
             st.session_state.cleared = True
+
+        st.write("Filter words by letters (top 16 most frequent):")
+        selected_letter = render_letter_gallery(letters_db, show_top_k=16)
+        if selected_letter:
+            selected_letters = st.session_state.get("filter_by_letters", [])
+            selected_letters.append(selected_letter)
+            st.session_state.filter_by_letters = selected_letters
+
+        # button to clear filter_by_letters state
+        if st.button("Clear Filter"):
+            st.session_state.filter_by_letters = []
 
         render_word_gallery(words_db, callback=lambda word_id: st.session_state.current_sentence.append({
             "type": "word",

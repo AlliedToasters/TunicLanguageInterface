@@ -14,7 +14,7 @@ from components.analytics import translate_words_from_english_freq
 
 def word_creator():
     st.title("Word Creator")
-    letter_creator_interface(subheader="Filter Letters")
+    letter_creator_interface(subheader="Create Letters", show_preview=True)
 
     # Create tabs for create and galleries
     tab1, tab3 = st.tabs(["Create Word", "Word Gallery"])
@@ -45,7 +45,8 @@ def word_creator():
                 st.session_state.current_word_letters = []
                 st.rerun()
 
-            render_letter_gallery(letters_db, columns=5, incl_text=False, callback=lambda letter_id: st.session_state.current_word_letters.append(letter_id))
+            st.write("letters containing the selected components:")
+            render_letter_gallery(letters_db, callback=lambda letter_id: st.session_state.current_word_letters.append(letter_id))
             
 
             
